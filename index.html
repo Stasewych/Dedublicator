@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Порівняння та дедуплікація IBAN</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/xlsx.js"></script>
+    <style>
+        :root {
+  /* Primitive Color Tokens */
+  --color-white: rgba(255, 255, 255, 1);
+  --color-black: rgba(0, 0, 0, 1);
+  --color-cream-50: rgba(252, 252, 249, 1);
+  --color-cream-100: rgba(255, 255, 253, 1);
+  --color-gray-200: rgba(245, 245, 245, 1);
+  --color-gray-300: rgba(167, 169, 169, 1);
+  --color-gray-400: rgba(119, 124, 124, 1);
+  --color-slate-500: rgba(98, 108, 113, 1);
+  --color-brown-600: rgba(94, 82, 64, 1);
+  --color-charcoal-700: rgba(31, 33, 33, 1);
+  --color-charcoal-800: rgba(38, 40, 40, 1);
+  --color-slate-900: rgba(19, 52, 59, 1);
+  --color-teal-300: rgba(50, 184, 198, 1);
+  --color-teal-400: rgba(45, 166, 178, 1);
+  --color-teal-500: rgba(33, 128, 141, 1);
+  --color-teal-600: rgba(29, 116, 128, 1);
+  --color-teal-700: rgba(26, 104, 115, 1);
+  --color-teal-800: rgba(41, 150, 161, 1);
+  --color-red-400: rgba(255, 84, 89, 1);
+  --color-red-500: rgba(192, 21, 47, 1);
+  --color-orange-400: rgba(230, 129, 97, 1);
+  --color-orange-500: rgba(168, 75, 47, 1);
+
+  /* RGB versions for opacity control */
+  --color-brown-600-rgb: 94, 82, 64;
+  --color-teal-500-rgb: 33, 128, 141;
+  --color-slate-900-rgb: 19, 52, 59;
+  --color-slate-500-rgb: 98, 108, 113;
+  --color-red-500-rgb: 192, 21, 47;
+  --color-red-400-rgb: 255, 84, 89;
+  --color-orange-500-rgb: 168, 75, 47;
+  --color-orange-400-rgb: 230, 129, 97;
+
+  /* Background color tokens (Light Mode) */
+  --color-bg-1: rgba(59, 130, 246, 0.08);
+  --color-bg-2: rgba(245, 158, 11, 0.08);
+  --color-bg-3: rgba(34, 197, 94, 0.08);
+  --color-bg-4: rgba(239, 68, 68, 0.08);
+  --color-bg-5: rgba(147, 51, 234, 0.08);
+  --color-bg-6: rgba(249, 115, 22, 0.08);
+  --color-bg-7: rgba(236, 72, 153, 0.08);
+  --color-bg-8: rgba(6, 182, 212, 0.08);
+
+  /* Semantic Color Tokens (Light Mode) */
+  --color-background: var(--color-cream-50);
+  --color-surface: var(--color-cream-100);
+  --color-text: var(--color-slate-900);
+  --color-text-secondary: var(--color-slate-500);
+  --color-primary: var(--color-teal-500);
+  --color-primary-hover: var(--color-teal-600);
+  --color-primary-active: var(--color-teal-700);
+  --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.2);
+  --color-secondary-active: rgba(var(--color-brown-600-rgb), 0.25);
+  --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+  --color-btn-primary-text: var(--color-cream-50);
+  --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
+  --color-error: var(--color-red-500);
+  --color-success: var(--color-teal-500);
+  --color-warning: var(--color-orange-500);
+  --color-info: var(--color-slate-500);
+  --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
+  --color-select-caret: rgba(var(--color-slate-900-rgb), 0.8);
+
+  /* Common style patterns */
+  --focus-ring: 0 0 0 3px var(--color-focus-ring);
+  --focus-outline: 2px solid var(--color-primary);
+  --status-bg-opacity: 0.15;
+  --status-border-opacity: 0.25;
+
+  /* RGB versions for opacity control */
+  --color-success-rgb: 33, 128, 141;
+  --color-error-rgb: 192, 21, 47;
+  --color-warning-rgb: 168, 75, 47;
+  --color-info-rgb: 98, 108, 113;
+
+  /* Typography */
+  --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-mono: "Berkeley Mono", ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+  --font-size-4xl: 30px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 550;
+  --font-weight-bold: 600;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --letter-spacing-tight: -0.01em;
+
+  /* Spacing */
+  --space-0: 0;
+  --space-1: 1px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-base: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04),
+    0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04),
+    0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+
+  /* Animation */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-gray-400-rgb: 119, 124, 124;
+    --color-teal-300-rgb: 50, 184, 198;
+    --color-gray-300-rgb: 167, 169, 169;
+    --color-gray-200-rgb: 245, 245, 245;
+
+    --color-bg-1: rgba(29, 78, 216, 0.15);
+    --color-bg-2: rgba(180, 83, 9, 0.15);
+    --color-bg-3: rgba(21, 128, 61, 0.15);
+    --color-bg-4: rgba(185, 28, 28, 0.15);
+    --color-bg-5: rgba(107, 33, 168, 0.15);
+    --color-bg-6: rgba(194, 65, 12, 0.15);
+    --color-bg-7: rgba(190, 24, 93, 0.15);
+    --color-bg-8: rgba(8, 145, 178, 0.15);
+
+    --color-background: var(--color-charcoal-700);
+    --color-surface: var(--color-charcoal-800);
+    --color-text: var(--color-gray-200);
+    --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
+    --color-primary: var(--color-teal-300);
+    --color-primary-hover: var(--color-teal-400);
+    --color-primary-active: var(--color-teal-800);
+    --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
+    --color-secondary-hover: rgba(var(--color-gray-400-rgb), 0.25);
+    --color-secondary-active: rgba(var(--color-gray-400-rgb), 0.3);
+    --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+    --color-error: var(--color-red-400);
+    --color-success: var(--color-teal-300);
+    --color-warning: var(--color-orange-400);
+    --color-info: var(--color-gray-300);
+    --color-focus-ring: rgba(var(--color-teal-300-rgb), 0.4);
+    --color-btn-primary-text: var(--color-slate-900);
+    --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
+    --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
+    --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    --color-select-caret: rgba(var(--color-gray-200-rgb), 0.8);
+
+    --color-success-rgb: var(--color-teal-300-rgb);
+    --color-error-rgb: var(--color-red-400-rgb);
+    --color-warning-rgb: var(--color-orange-400-rgb);
+    --color-info-rgb: var(--color-gray-300-rgb);
+  }
+}
+
+@font-face {
+  font-family: 'FKGroteskNeue';
+  src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2')
+    format('woff2');
+}
+
+html {
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-base);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: var(--space-32);
+        }
+
+        h1 {
+            color: var(--color-text);
+            margin-bottom: var(--space-24);
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        h2 {
+            color: var(--color-text);
+            margin-top: var(--space-32);
+            margin-bottom: var(--space-16);
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .instructions {
+            background-color: var(--color-bg-3);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-20);
+            margin-bottom: var(--space-32);
+        }
+
+        .instructions h3 {
+            margin-top: 0;
+            margin-bottom: var(--space-12);
+            color: var(--color-text);
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .instructions ol {
+            margin: 0;
+            padding-left: var(--space-24);
+        }
+
+        .instructions li {
+            margin-bottom: var(--space-8);
+            color: var(--color-text);
+        }
+
+        .card {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-24);
+            margin-bottom: var(--space-24);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .file-upload-area {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-16);
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-8);
+        }
+
+        .file-input-wrapper label {
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text);
+        }
+
+        input[type="file"] {
+            padding: var(--space-12);
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius-base);
+            background-color: var(--color-surface);
+            cursor: pointer;
+            color: var(--color-text);
+            transition: border-color var(--duration-normal) var(--ease-standard);
+        }
+
+        input[type="file"]:hover {
+            border-color: var(--color-primary);
+        }
+
+        .file-info {
+            background-color: var(--color-bg-1);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            padding: var(--space-12);
+            margin-top: var(--space-8);
+        }
+
+        .file-info p {
+            margin: var(--space-4) 0;
+            color: var(--color-text);
+            font-size: var(--font-size-sm);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-16);
+            margin-bottom: var(--space-24);
+        }
+
+        .stat-card {
+            background-color: var(--color-bg-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            padding: var(--space-16);
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-4);
+        }
+
+        .stat-value {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-12) var(--space-24);
+            border-radius: var(--radius-base);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--duration-normal) var(--ease-standard);
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: var(--color-btn-primary-text);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            background: var(--color-primary-active);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background-color: rgba(var(--color-error-rgb), 0.1);
+            border: 1px solid var(--color-error);
+            border-radius: var(--radius-base);
+            padding: var(--space-12);
+            color: var(--color-error);
+            margin-top: var(--space-12);
+        }
+
+        .success-message {
+            background-color: rgba(var(--color-success-rgb), 0.1);
+            border: 1px solid var(--color-success);
+            border-radius: var(--radius-base);
+            padding: var(--space-12);
+            color: var(--color-success);
+            margin-top: var(--space-12);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background-color: var(--color-primary);
+            color: var(--color-btn-primary-text);
+            border-radius: var(--radius-full);
+            font-weight: var(--font-weight-bold);
+            margin-right: var(--space-8);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--space-16);
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--space-16);
+            font-size: var(--font-size-sm);
+            overflow-x: auto;
+            display: block;
+        }
+
+        .preview-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            border: 1px solid var(--color-border);
+            padding: var(--space-8);
+            text-align: left;
+        }
+
+        .preview-table th {
+            background-color: var(--color-secondary);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text);
+        }
+
+        .preview-table td {
+            color: var(--color-text);
+        }
+
+        .column-selector {
+            margin-top: var(--space-16);
+            padding: var(--space-16);
+            background-color: var(--color-bg-1);
+            border-radius: var(--radius-base);
+            border: 1px solid var(--color-border);
+        }
+
+        .column-selector label {
+            display: block;
+            margin-bottom: var(--space-8);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text);
+        }
+
+        .column-selector select {
+            width: 100%;
+            padding: var(--space-8) var(--space-12);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            background-color: var(--color-surface);
+            color: var(--color-text);
+            font-size: var(--font-size-base);
+        }
+
+        .column-info {
+            margin-top: var(--space-12);
+            padding: var(--space-12);
+            background-color: var(--color-bg-3);
+            border-radius: var(--radius-base);
+            color: var(--color-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Порівняння та дедуплікація IBAN номерів</h1>
+        
+        <div class="instructions">
+            <h3>Інструкція використання</h3>
+            <ol>
+                <li>Завантажте перший Excel файл (.xlsx або .xls)</li>
+                <li>Оберіть колонку, яка містить IBAN номери</li>
+                <li>Завантажте другий Excel файл</li>
+                <li>Оберіть колонку з IBAN номерами для другого файлу</li>
+                <li>Натисніть "Згенерувати підсумковий файл" для порівняння</li>
+                <li>Завантажте результат - файл з трьома аркушами:
+                    <ul>
+                        <li>Записи тільки з файлу 1 (не знайдені у файлі 2)</li>
+                        <li>Записи тільки з файлу 2 (не знайдені у файлі 1)</li>
+                        <li>Всі унікальні записи (об'єднання)</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <!-- Step 1: File Upload -->
+        <div class="card">
+            <div class="step-header">
+                <span class="step-number">1</span>
+                <h2 style="margin: 0;">Завантаження файлів</h2>
+            </div>
+            
+            <div class="file-upload-area">
+                <div class="file-input-wrapper">
+                    <label for="file1">Файл 1:</label>
+                    <input type="file" id="file1" accept=".xlsx,.xls" />
+                    <div id="file1-error" class="error-message hidden"></div>
+                    <div id="file1-preview" class="hidden">
+                        <h3 style="margin-top: var(--space-16); margin-bottom: var(--space-8);">Попередній перегляд даних:</h3>
+                        <div class="preview-table" id="file1-preview-table"></div>
+                        <div class="column-selector">
+                            <label for="file1-column">Оберіть колонку з IBAN номерами:</label>
+                            <select id="file1-column"></select>
+                            <div id="file1-column-info" class="column-info hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="file-input-wrapper">
+                    <label for="file2">Файл 2:</label>
+                    <input type="file" id="file2" accept=".xlsx,.xls" />
+                    <div id="file2-error" class="error-message hidden"></div>
+                    <div id="file2-preview" class="hidden">
+                        <h3 style="margin-top: var(--space-16); margin-bottom: var(--space-8);">Попередній перегляд даних:</h3>
+                        <div class="preview-table" id="file2-preview-table"></div>
+                        <div class="column-selector">
+                            <label for="file2-column">Оберіть колонку з IBAN номерами:</label>
+                            <select id="file2-column"></select>
+                            <div id="file2-column-info" class="column-info hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Generate Results -->
+        <div class="card">
+            <div class="step-header">
+                <span class="step-number">2</span>
+                <h2 style="margin: 0;">Генерація результатів</h2>
+            </div>
+            
+            <div class="stats-grid" id="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Рядків у файлі 1</div>
+                    <div class="stat-value" id="stat-file1">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Рядків у файлі 2</div>
+                    <div class="stat-value" id="stat-file2">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Співпадаючі записи</div>
+                    <div class="stat-value" id="stat-matching">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Унікальні записи</div>
+                    <div class="stat-value" id="stat-unique">-</div>
+                </div>
+            </div>
+
+            <button id="generate-btn" class="btn btn-primary" disabled>Згенерувати підсумковий файл</button>
+            <div id="generate-message" class="success-message hidden"></div>
+        </div>
+
+        <!-- Step 3: Download -->
+        <div class="card">
+            <div class="step-header">
+                <span class="step-number">3</span>
+                <h2 style="margin: 0;">Завантаження результату</h2>
+            </div>
+            
+            <button id="download-btn" class="btn btn-primary" disabled>Завантажити підсумковий файл</button>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let file1Data = null;
+        let file2Data = null;
+        let file1SelectedColumn = null;
+        let file2SelectedColumn = null;
+        let resultWorkbook = null;
+
+        // Wait for XLSX library to load
+        if (typeof XLSX === 'undefined') {
+            console.error('XLSX library not loaded!');
+            alert('Помилка: бібліотека XLSX не завантажилась. Перезавантажте сторінку.');
+        }
+
+        // File input handlers
+        document.getElementById('file1').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 1);
+        });
+
+        document.getElementById('file2').addEventListener('change', function(e) {
+            handleFileUpload(e.target.files[0], 2);
+        });
+
+        // Column selection handlers
+        document.getElementById('file1-column').addEventListener('change', function(e) {
+            handleColumnSelection(1, e.target.value);
+        });
+
+        document.getElementById('file2-column').addEventListener('change', function(e) {
+            handleColumnSelection(2, e.target.value);
+        });
+
+        // Generate button handler
+        document.getElementById('generate-btn').addEventListener('click', generateResults);
+
+        // Download button handler
+        document.getElementById('download-btn').addEventListener('click', downloadResults);
+
+        function handleFileUpload(file, fileNumber) {
+            console.log(`Processing file ${fileNumber}:`, file.name);
+            
+            const errorDiv = document.getElementById(`file${fileNumber}-error`);
+            const previewDiv = document.getElementById(`file${fileNumber}-preview`);
+            
+            // Clear previous messages
+            errorDiv.classList.add('hidden');
+            previewDiv.classList.add('hidden');
+            
+            if (!file) {
+                return;
+            }
+
+            // Validate file type
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+                errorDiv.textContent = 'Помилка: Підтримуються тільки файли .xlsx та .xls';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    console.log(`File ${fileNumber} workbook:`, workbook);
+                    
+                    // Get first sheet
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                    
+                    console.log(`File ${fileNumber} - Total rows:`, jsonData.length);
+                    
+                    // Store file data
+                    const fileData = {
+                        name: file.name,
+                        workbook: workbook,
+                        sheetName: firstSheetName,
+                        allRows: jsonData
+                    };
+                    
+                    if (fileNumber === 1) {
+                        file1Data = fileData;
+                        file1SelectedColumn = null;
+                    } else {
+                        file2Data = fileData;
+                        file2SelectedColumn = null;
+                    }
+                    
+                    // Show preview
+                    displayPreview(fileNumber, jsonData);
+                    
+                    // Reset generate button
+                    checkIfReadyToGenerate();
+                    
+                } catch (error) {
+                    console.error(`Error processing file ${fileNumber}:`, error);
+                    errorDiv.textContent = `Помилка читання файлу: ${error.message}`;
+                    errorDiv.classList.remove('hidden');
+                }
+            };
+            
+            reader.onerror = function() {
+                errorDiv.textContent = 'Помилка читання файлу';
+                errorDiv.classList.remove('hidden');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function displayPreview(fileNumber, rows) {
+            const previewDiv = document.getElementById(`file${fileNumber}-preview`);
+            const tableDiv = document.getElementById(`file${fileNumber}-preview-table`);
+            const columnSelect = document.getElementById(`file${fileNumber}-column`);
+            
+            // Show first 10 rows
+            const previewRows = rows.slice(0, 10);
+            
+            if (previewRows.length === 0 || previewRows[0].length === 0) {
+                tableDiv.innerHTML = '<p>Файл порожній або не містить даних</p>';
+                previewDiv.classList.remove('hidden');
+                return;
+            }
+            
+            // Determine number of columns
+            const maxCols = Math.max(...previewRows.map(row => row.length));
+            
+            // Create table
+            let tableHTML = '<table><thead><tr>';
+            
+            // Column headers (A, B, C, ...)
+            for (let i = 0; i < maxCols; i++) {
+                const colLetter = String.fromCharCode(65 + i);
+                tableHTML += `<th>${colLetter}</th>`;
+            }
+            tableHTML += '</tr></thead><tbody>';
+            
+            // Data rows
+            previewRows.forEach(row => {
+                tableHTML += '<tr>';
+                for (let i = 0; i < maxCols; i++) {
+                    const cell = row[i] !== undefined && row[i] !== null ? row[i] : '';
+                    tableHTML += `<td>${cell}</td>`;
+                }
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody></table>';
+            tableDiv.innerHTML = tableHTML;
+            
+            // Populate column selector
+            columnSelect.innerHTML = '<option value="">-- Оберіть колонку --</option>';
+            for (let i = 0; i < maxCols; i++) {
+                const colLetter = String.fromCharCode(65 + i);
+                columnSelect.innerHTML += `<option value="${i}">${colLetter}</option>`;
+            }
+            
+            previewDiv.classList.remove('hidden');
+        }
+
+        function handleColumnSelection(fileNumber, columnIndex) {
+            if (columnIndex === '') {
+                if (fileNumber === 1) {
+                    file1SelectedColumn = null;
+                } else {
+                    file2SelectedColumn = null;
+                }
+                checkIfReadyToGenerate();
+                return;
+            }
+            
+            const colIndex = parseInt(columnIndex);
+            const fileData = fileNumber === 1 ? file1Data : file2Data;
+            const infoDiv = document.getElementById(`file${fileNumber}-column-info`);
+            
+            if (!fileData) return;
+            
+            // Extract values from selected column
+            const columnValues = [];
+            fileData.allRows.forEach((row, idx) => {
+                if (idx > 0 && row[colIndex] !== undefined && row[colIndex] !== null && row[colIndex] !== '') {
+                    columnValues.push(String(row[colIndex]).trim());
+                }
+            });
+            
+            const uniqueValues = [...new Set(columnValues)];
+            
+            if (fileNumber === 1) {
+                file1SelectedColumn = colIndex;
+            } else {
+                file2SelectedColumn = colIndex;
+            }
+            
+            // Show info
+            const colLetter = String.fromCharCode(65 + colIndex);
+            infoDiv.innerHTML = `<strong>Колонка ${colLetter}:</strong> знайдено ${columnValues.length} значень (${uniqueValues.length} унікальних)`;
+            infoDiv.classList.remove('hidden');
+            
+            checkIfReadyToGenerate();
+        }
+
+        function checkIfReadyToGenerate() {
+            const canGenerate = file1Data && file2Data && 
+                               file1SelectedColumn !== null && 
+                               file2SelectedColumn !== null;
+            
+            document.getElementById('generate-btn').disabled = !canGenerate;
+            
+            if (canGenerate) {
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            if (!file1Data || !file2Data || 
+                file1SelectedColumn === null || file2SelectedColumn === null) return;
+            
+            // Extract values from selected columns (skip header row)
+            const values1 = [];
+            file1Data.allRows.forEach((row, idx) => {
+                if (idx > 0 && row[file1SelectedColumn] !== undefined && 
+                    row[file1SelectedColumn] !== null && row[file1SelectedColumn] !== '') {
+                    values1.push(String(row[file1SelectedColumn]).trim());
+                }
+            });
+            
+            const values2 = [];
+            file2Data.allRows.forEach((row, idx) => {
+                if (idx > 0 && row[file2SelectedColumn] !== undefined && 
+                    row[file2SelectedColumn] !== null && row[file2SelectedColumn] !== '') {
+                    values2.push(String(row[file2SelectedColumn]).trim());
+                }
+            });
+            
+            const set1 = new Set(values1);
+            const set2 = new Set(values2);
+            
+            // Find matching values
+            const matching = [...set1].filter(x => set2.has(x));
+            
+            // Count rows with unique values (not in the other file)
+            const uniqueCount1 = values1.filter(x => !set2.has(x)).length;
+            const uniqueCount2 = values2.filter(x => !set1.has(x)).length;
+            const totalUnique = uniqueCount1 + uniqueCount2;
+            
+            document.getElementById('stat-file1').textContent = file1Data.allRows.length - 1;
+            document.getElementById('stat-file2').textContent = file2Data.allRows.length - 1;
+            document.getElementById('stat-matching').textContent = matching.length;
+            document.getElementById('stat-unique').textContent = totalUnique;
+        }
+
+        function generateResults() {
+            console.log('Generating results...');
+            
+            try {
+                if (!file1Data || !file2Data || 
+                    file1SelectedColumn === null || file2SelectedColumn === null) {
+                    alert('Будь ласка, завантажте обидва файли та оберіть колонки');
+                    return;
+                }
+                
+                // Extract values from selected columns
+                const values2Set = new Set();
+                file2Data.allRows.forEach((row, idx) => {
+                    if (idx > 0 && row[file2SelectedColumn] !== undefined && 
+                        row[file2SelectedColumn] !== null && row[file2SelectedColumn] !== '') {
+                        values2Set.add(String(row[file2SelectedColumn]).trim());
+                    }
+                });
+                
+                const values1Set = new Set();
+                file1Data.allRows.forEach((row, idx) => {
+                    if (idx > 0 && row[file1SelectedColumn] !== undefined && 
+                        row[file1SelectedColumn] !== null && row[file1SelectedColumn] !== '') {
+                        values1Set.add(String(row[file1SelectedColumn]).trim());
+                    }
+                });
+                
+                // Find rows from file 1 NOT in file 2
+                const rowsOnlyInFile1 = [file1Data.allRows[0]];
+                file1Data.allRows.forEach((row, idx) => {
+                    if (idx > 0) {
+                        const value = row[file1SelectedColumn] !== undefined && 
+                                     row[file1SelectedColumn] !== null && 
+                                     row[file1SelectedColumn] !== '' 
+                                     ? String(row[file1SelectedColumn]).trim() : '';
+                        if (value && !values2Set.has(value)) {
+                            rowsOnlyInFile1.push(row);
+                        }
+                    }
+                });
+                
+                // Find rows from file 2 NOT in file 1
+                const rowsOnlyInFile2 = [file2Data.allRows[0]];
+                file2Data.allRows.forEach((row, idx) => {
+                    if (idx > 0) {
+                        const value = row[file2SelectedColumn] !== undefined && 
+                                     row[file2SelectedColumn] !== null && 
+                                     row[file2SelectedColumn] !== '' 
+                                     ? String(row[file2SelectedColumn]).trim() : '';
+                        if (value && !values1Set.has(value)) {
+                            rowsOnlyInFile2.push(row);
+                        }
+                    }
+                });
+                
+                // Combine all unique rows (skip headers)
+                const allUniqueRows = [file1Data.allRows[0]];
+                rowsOnlyInFile1.forEach((row, idx) => {
+                    if (idx > 0) allUniqueRows.push(row);
+                });
+                rowsOnlyInFile2.forEach((row, idx) => {
+                    if (idx > 0) allUniqueRows.push(row);
+                });
+                
+                console.log('Rows only in file 1:', rowsOnlyInFile1.length - 1);
+                console.log('Rows only in file 2:', rowsOnlyInFile2.length - 1);
+                console.log('All unique rows:', allUniqueRows.length - 1);
+                
+                // Create new workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Sheet 1: Rows only in file 1
+                const ws1 = XLSX.utils.aoa_to_sheet(rowsOnlyInFile1);
+                formatIBANColumn(ws1, file1SelectedColumn, rowsOnlyInFile1.length);
+                XLSX.utils.book_append_sheet(wb, ws1, 'Файл 1');
+                
+                // Sheet 2: Rows only in file 2
+                const ws2 = XLSX.utils.aoa_to_sheet(rowsOnlyInFile2);
+                formatIBANColumn(ws2, file2SelectedColumn, rowsOnlyInFile2.length);
+                XLSX.utils.book_append_sheet(wb, ws2, 'Файл 2');
+                
+                // Sheet 3: All unique rows - need to determine which column to format
+                const ws3 = XLSX.utils.aoa_to_sheet(allUniqueRows);
+                formatIBANColumn(ws3, file1SelectedColumn, allUniqueRows.length);
+                XLSX.utils.book_append_sheet(wb, ws3, 'Результат');
+                
+                resultWorkbook = wb;
+                
+                // Enable download button
+                document.getElementById('download-btn').disabled = false;
+                
+                // Show success message
+                const msgDiv = document.getElementById('generate-message');
+                msgDiv.textContent = `Результат успішно згенеровано! Знайдено ${allUniqueRows.length - 1} унікальних записів.`;
+                msgDiv.classList.remove('hidden');
+                
+                console.log('Results generated successfully');
+                
+            } catch (error) {
+                console.error('Error generating results:', error);
+                alert(`Помилка генерації результатів: ${error.message}`);
+            }
+        }
+
+        function formatIBANColumn(worksheet, columnIndex, rowCount) {
+            // Format the IBAN column to prevent scientific notation
+            const colLetter = XLSX.utils.encode_col(columnIndex);
+            
+            for (let row = 0; row < rowCount; row++) {
+                const cellAddress = colLetter + (row + 1);
+                const cell = worksheet[cellAddress];
+                
+                if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
+                    // Convert to string and store as text type
+                    const cellValue = String(cell.v).trim();
+                    cell.t = 's'; // Set type to string
+                    cell.v = cellValue; // Set value as string
+                    cell.z = '@'; // Set format to text
+                    delete cell.w; // Remove formatted text to force recalculation
+                }
+            }
+        }
+
+        function downloadResults() {
+            if (!resultWorkbook) {
+                alert('Спочатку згенерруйте результати');
+                return;
+            }
+            
+            try {
+                // Generate Excel file with cellDates and bookSST options
+                const wbout = XLSX.write(resultWorkbook, { 
+                    bookType: 'xlsx', 
+                    type: 'array',
+                    cellDates: false,
+                    bookSST: false
+                });
+                
+                // Create blob and download
+                const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'IBAN_порівняння_результат.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                console.log('File downloaded successfully');
+                
+            } catch (error) {
+                console.error('Error downloading file:', error);
+                alert(`Помилка завантаження файлу: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
