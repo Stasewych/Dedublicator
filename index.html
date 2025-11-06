@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Порівняння та дедуплікація IBAN</title>
+    <title>Фільтрація IBAN номерів</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/xlsx.js"></script>
     <style>
         :root {
@@ -491,21 +491,21 @@ body {
 </head>
 <body>
     <div class="container">
-        <h1>Порівняння та дедуплікація IBAN номерів</h1>
+        <h1>Фільтрація IBAN номерів</h1>
         
         <div class="instructions">
             <h3>Інструкція використання</h3>
             <ol>
-                <li>Завантажте перший Excel файл (.xlsx або .xls)</li>
+                <li>Завантажте <strong>Файл 1 "Всі рахунки"</strong> - основний файл (.xlsx або .xls)</li>
                 <li>Оберіть колонку, яка містить IBAN номери</li>
-                <li>Завантажте другий Excel файл</li>
+                <li>Завантажте <strong>Файл 2 "Зарплатні рахунки"</strong> - файл для виключення (.xlsx або .xls)</li>
                 <li>Оберіть колонку з IBAN номерами для другого файлу</li>
-                <li>Натисніть "Згенерувати підсумковий файл" для порівняння</li>
+                <li>Натисніть "Згенерувати підсумковий файл"</li>
                 <li>Завантажте результат - файл з трьома аркушами:
                     <ul>
-                        <li>Записи тільки з файлу 1 (не знайдені у файлі 2)</li>
-                        <li>Записи тільки з файлу 2 (не знайдені у файлі 1)</li>
-                        <li>Всі унікальні записи (об'єднання)</li>
+                        <li><strong>Файл 1 (Всі рахунки)</strong> - всі оригінальні рядки з Файлу 1</li>
+                        <li><strong>Файл 2 (Зарплатні рахунки)</strong> - всі оригінальні рядки з Файлу 2</li>
+                        <li><strong>Результат</strong> - тільки рядки з Файлу 1, яких НЕМАЄ у Файлі 2 (Файл 1 МІНУС Файл 2)</li>
                     </ul>
                 </li>
             </ol>
@@ -520,7 +520,7 @@ body {
             
             <div class="file-upload-area">
                 <div class="file-input-wrapper">
-                    <label for="file1">Файл 1:</label>
+                    <label for="file1">Файл 1 "Всі рахунки" (основний файл):</label>
                     <input type="file" id="file1" accept=".xlsx,.xls" />
                     <div id="file1-error" class="error-message hidden"></div>
                     <div id="file1-preview" class="hidden">
@@ -535,7 +535,7 @@ body {
                 </div>
 
                 <div class="file-input-wrapper">
-                    <label for="file2">Файл 2:</label>
+                    <label for="file2">Файл 2 "Зарплатні рахунки" (файл для виключення):</label>
                     <input type="file" id="file2" accept=".xlsx,.xls" />
                     <div id="file2-error" class="error-message hidden"></div>
                     <div id="file2-preview" class="hidden">
@@ -560,20 +560,20 @@ body {
             
             <div class="stats-grid" id="stats">
                 <div class="stat-card">
-                    <div class="stat-label">Рядків у файлі 1</div>
+                    <div class="stat-label">Всього IBAN у Файлі 1</div>
                     <div class="stat-value" id="stat-file1">-</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Рядків у файлі 2</div>
+                    <div class="stat-label">Всього IBAN у Файлі 2</div>
                     <div class="stat-value" id="stat-file2">-</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Співпадаючі записи</div>
-                    <div class="stat-value" id="stat-matching">-</div>
+                    <div class="stat-label">IBAN для виключення</div>
+                    <div class="stat-value" id="stat-excluded">-</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Унікальні записи</div>
-                    <div class="stat-value" id="stat-unique">-</div>
+                    <div class="stat-label">Унікальні IBAN у результаті</div>
+                    <div class="stat-value" id="stat-result">-</div>
                 </div>
             </div>
 
@@ -829,21 +829,22 @@ body {
                 }
             });
             
-            const set1 = new Set(values1);
             const set2 = new Set(values2);
             
-            // Find matching values
-            const matching = [...set1].filter(x => set2.has(x));
+            // Find unique IBANs from File 1
+            const uniqueIBANs1 = [...new Set(values1)];
+            const uniqueIBANs2 = [...new Set(values2)];
             
-            // Count rows with unique values (not in the other file)
-            const uniqueCount1 = values1.filter(x => !set2.has(x)).length;
-            const uniqueCount2 = values2.filter(x => !set1.has(x)).length;
-            const totalUnique = uniqueCount1 + uniqueCount2;
+            // Count how many IBANs from File 1 will be excluded (found in File 2)
+            const excludedCount = uniqueIBANs1.filter(x => set2.has(x)).length;
             
-            document.getElementById('stat-file1').textContent = file1Data.allRows.length - 1;
-            document.getElementById('stat-file2').textContent = file2Data.allRows.length - 1;
-            document.getElementById('stat-matching').textContent = matching.length;
-            document.getElementById('stat-unique').textContent = totalUnique;
+            // Count result: IBANs from File 1 NOT in File 2
+            const resultCount = uniqueIBANs1.filter(x => !set2.has(x)).length;
+            
+            document.getElementById('stat-file1').textContent = values1.length;
+            document.getElementById('stat-file2').textContent = values2.length;
+            document.getElementById('stat-excluded').textContent = excludedCount;
+            document.getElementById('stat-result').textContent = resultCount;
         }
 
         function generateResults() {
@@ -856,7 +857,7 @@ body {
                     return;
                 }
                 
-                // Extract values from selected columns
+                // Build set of IBANs from File 2 (for exclusion)
                 const values2Set = new Set();
                 file2Data.allRows.forEach((row, idx) => {
                     if (idx > 0 && row[file2SelectedColumn] !== undefined && 
@@ -865,16 +866,10 @@ body {
                     }
                 });
                 
-                const values1Set = new Set();
-                file1Data.allRows.forEach((row, idx) => {
-                    if (idx > 0 && row[file1SelectedColumn] !== undefined && 
-                        row[file1SelectedColumn] !== null && row[file1SelectedColumn] !== '') {
-                        values1Set.add(String(row[file1SelectedColumn]).trim());
-                    }
-                });
+                console.log('File 2 IBANs to exclude:', values2Set.size);
                 
-                // Find rows from file 1 NOT in file 2
-                const rowsOnlyInFile1 = [file1Data.allRows[0]];
+                // Filter File 1: keep ONLY rows where IBAN is NOT in File 2
+                const resultRows = [file1Data.allRows[0]]; // Keep header
                 file1Data.allRows.forEach((row, idx) => {
                     if (idx > 0) {
                         const value = row[file1SelectedColumn] !== undefined && 
@@ -882,54 +877,29 @@ body {
                                      row[file1SelectedColumn] !== '' 
                                      ? String(row[file1SelectedColumn]).trim() : '';
                         if (value && !values2Set.has(value)) {
-                            rowsOnlyInFile1.push(row);
+                            resultRows.push(row);
                         }
                     }
                 });
                 
-                // Find rows from file 2 NOT in file 1
-                const rowsOnlyInFile2 = [file2Data.allRows[0]];
-                file2Data.allRows.forEach((row, idx) => {
-                    if (idx > 0) {
-                        const value = row[file2SelectedColumn] !== undefined && 
-                                     row[file2SelectedColumn] !== null && 
-                                     row[file2SelectedColumn] !== '' 
-                                     ? String(row[file2SelectedColumn]).trim() : '';
-                        if (value && !values1Set.has(value)) {
-                            rowsOnlyInFile2.push(row);
-                        }
-                    }
-                });
+                console.log('Result rows (File 1 MINUS File 2):', resultRows.length - 1);
                 
-                // Combine all unique rows (skip headers)
-                const allUniqueRows = [file1Data.allRows[0]];
-                rowsOnlyInFile1.forEach((row, idx) => {
-                    if (idx > 0) allUniqueRows.push(row);
-                });
-                rowsOnlyInFile2.forEach((row, idx) => {
-                    if (idx > 0) allUniqueRows.push(row);
-                });
-                
-                console.log('Rows only in file 1:', rowsOnlyInFile1.length - 1);
-                console.log('Rows only in file 2:', rowsOnlyInFile2.length - 1);
-                console.log('All unique rows:', allUniqueRows.length - 1);
-                
-                // Create new workbook
+                // Create new workbook with THREE sheets
                 const wb = XLSX.utils.book_new();
                 
-                // Sheet 1: Rows only in file 1
-                const ws1 = XLSX.utils.aoa_to_sheet(rowsOnlyInFile1);
-                formatIBANColumn(ws1, file1SelectedColumn, rowsOnlyInFile1.length);
-                XLSX.utils.book_append_sheet(wb, ws1, 'Файл 1');
+                // Sheet 1: All original rows from File 1
+                const ws1 = XLSX.utils.aoa_to_sheet(file1Data.allRows);
+                formatIBANColumn(ws1, file1SelectedColumn, file1Data.allRows.length);
+                XLSX.utils.book_append_sheet(wb, ws1, 'Файл 1 (Всі рахунки)');
                 
-                // Sheet 2: Rows only in file 2
-                const ws2 = XLSX.utils.aoa_to_sheet(rowsOnlyInFile2);
-                formatIBANColumn(ws2, file2SelectedColumn, rowsOnlyInFile2.length);
-                XLSX.utils.book_append_sheet(wb, ws2, 'Файл 2');
+                // Sheet 2: All original rows from File 2
+                const ws2 = XLSX.utils.aoa_to_sheet(file2Data.allRows);
+                formatIBANColumn(ws2, file2SelectedColumn, file2Data.allRows.length);
+                XLSX.utils.book_append_sheet(wb, ws2, 'Файл 2 (Зарплатні)');
                 
-                // Sheet 3: All unique rows - need to determine which column to format
-                const ws3 = XLSX.utils.aoa_to_sheet(allUniqueRows);
-                formatIBANColumn(ws3, file1SelectedColumn, allUniqueRows.length);
+                // Sheet 3: Result - ONLY rows from File 1 where IBAN NOT in File 2
+                const ws3 = XLSX.utils.aoa_to_sheet(resultRows);
+                formatIBANColumn(ws3, file1SelectedColumn, resultRows.length);
                 XLSX.utils.book_append_sheet(wb, ws3, 'Результат');
                 
                 resultWorkbook = wb;
@@ -939,7 +909,7 @@ body {
                 
                 // Show success message
                 const msgDiv = document.getElementById('generate-message');
-                msgDiv.textContent = `Результат успішно згенеровано! Знайдено ${allUniqueRows.length - 1} унікальних записів.`;
+                msgDiv.textContent = `Результат успішно згенеровано! У результаті: ${resultRows.length - 1} записів (Файл 1 МІНУС Файл 2).`;
                 msgDiv.classList.remove('hidden');
                 
                 console.log('Results generated successfully');
@@ -989,7 +959,7 @@ body {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = 'IBAN_порівняння_результат.xlsx';
+                link.download = 'IBAN_фільтрація_результат.xlsx';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
