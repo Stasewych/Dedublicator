@@ -505,7 +505,8 @@ body {
                     <ul>
                         <li><strong>Файл 1 (Всі рахунки)</strong> - всі оригінальні рядки з Файлу 1</li>
                         <li><strong>Файл 2 (Зарплатні рахунки)</strong> - всі оригінальні рядки з Файлу 2</li>
-                        <li><strong>Результат</strong> - тільки рядки з Файлу 1, яких НЕМАЄ у Файлі 2 (Файл 1 МІНУС Файл 2)</li>
+                        <li><strong>Результат</strong> - тільки рядки з Файлу 1, яких НЕМАЄ у Файлі 2 (Файл 1 МІНУС Файл 2)<br>
+                        <em>Примітка: У аркуші "Результат" перша колонка перейменована на "asvp_id", друга на "iban"</em></li>
                     </ul>
                 </li>
             </ol>
@@ -898,8 +899,20 @@ body {
                 XLSX.utils.book_append_sheet(wb, ws2, 'Файл 2 (Зарплатні)');
                 
                 // Sheet 3: Result - ONLY rows from File 1 where IBAN NOT in File 2
-                const ws3 = XLSX.utils.aoa_to_sheet(resultRows);
-                formatIBANColumn(ws3, file1SelectedColumn, resultRows.length);
+                // CRITICAL: Rename first two columns in Result sheet
+                const resultRowsRenamed = resultRows.map((row, idx) => {
+                    if (idx === 0) {
+                        // Header row: rename first column to "asvp_id" and second to "iban"
+                        const newRow = [...row];
+                        if (newRow.length > 0) newRow[0] = 'asvp_id';
+                        if (newRow.length > 1) newRow[1] = 'iban';
+                        return newRow;
+                    }
+                    return row;
+                });
+                
+                const ws3 = XLSX.utils.aoa_to_sheet(resultRowsRenamed);
+                formatIBANColumn(ws3, file1SelectedColumn, resultRowsRenamed.length);
                 XLSX.utils.book_append_sheet(wb, ws3, 'Результат');
                 
                 resultWorkbook = wb;
